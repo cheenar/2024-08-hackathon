@@ -1,36 +1,80 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import I18nProvider from "@cloudscape-design/components/i18n";
 import "./App.css";
-import { Button, Container, SpaceBetween } from "@cloudscape-design/components";
+import {
+  AppLayout,
+  BreadcrumbGroup,
+  Container,
+  ContentLayout,
+  Header,
+  HelpPanel,
+  Link,
+  SideNavigation,
+  SplitPanel,
+  TopNavigation,
+} from "@cloudscape-design/components";
+import messages from "@cloudscape-design/components/i18n/messages/all.all";
+
+const LOCALE = "en";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
     <>
-      <Container>
-        <SpaceBetween direction="horizontal" size="s">
-          <a href="https://vitejs.dev" target="_blank">
-            <img src={viteLogo} className="logo" alt="Vite logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="logo react" alt="React logo" />
-          </a>
-        </SpaceBetween>
-        <h1>Vite + React</h1>
-        <div className="card">
-          <Button onClick={() => setCount((count) => count + 1)}>
-            Count ist {count}
-          </Button>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test HMR
-          </p>
-        </div>
-        <p className="read-the-docs">
-          Click on the Vite and React logos to learn more
-        </p>
-      </Container>
+      <TopNavigation
+        identity={{
+          title: "Service name",
+          href: "#",
+        }}
+      />
+      <I18nProvider locale={LOCALE} messages={[messages]}>
+        <AppLayout
+          breadcrumbs={
+            <BreadcrumbGroup
+              items={[
+                { text: "Home", href: "#" },
+                { text: "Service", href: "#" },
+              ]}
+            />
+          }
+          navigationOpen={true}
+          navigation={
+            <SideNavigation
+              header={{
+                href: "#",
+                text: "Service name",
+              }}
+              items={[{ type: "link", text: `Page #1`, href: `#` }]}
+            />
+          }
+          toolsOpen={true}
+          tools={<HelpPanel header={<h2>Overview</h2>}>Help content</HelpPanel>}
+          content={
+            <ContentLayout
+              header={
+                <>
+                  <Header variant="h1" info={<Link variant="info">Info</Link>}>
+                    Page header
+                  </Header>
+                </>
+              }
+            >
+              <Container
+                header={
+                  <Header variant="h2" description="Container description">
+                    Container header
+                  </Header>
+                }
+              >
+                <div className="contentPlaceholder" />
+              </Container>
+            </ContentLayout>
+          }
+          splitPanel={
+            <SplitPanel header="Split panel header">
+              Split panel content
+            </SplitPanel>
+          }
+        />
+      </I18nProvider>
     </>
   );
 }
