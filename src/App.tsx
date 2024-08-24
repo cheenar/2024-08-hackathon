@@ -30,7 +30,7 @@ function App() {
           breadcrumbs={
             <BreadcrumbGroup
               items={[
-                { text: "Home", href: "#" },
+                { text: "Hsome", href: "#" },
                 { text: "Service", href: "#" },
               ]}
             />
