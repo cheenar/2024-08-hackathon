@@ -2,7 +2,6 @@ import {
   ArrowLeft,
   ArrowRight,
   RefreshCw,
-  Maximize2,
   MessageSquare,
   PlusCircle,
   Camera,
