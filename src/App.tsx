@@ -14,7 +14,7 @@ const ClaudeInterface = () => {
 
         <main className="flex-grow flex flex-col items-center">
           <h1 className="text-2xl font-serif mb-2 text-gray-700">Clxxde</h1>
-          <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Professional Plan</div>
+          <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Stolen Plan</div>
 
           <h2 className="text-3xl font-serif mb-6 text-gray-700">
             <span className="text-orange-400 mr-2">✺</span>
@@ -25,7 +25,7 @@ const ClaudeInterface = () => {
             <input
               type="text"
               placeholder="How can Claude help you today?"
-              className="w-full p-2 text-gray-500 mb-4"
+              className="w-full p-2 text-gray-500 mb-4 focus:outline-none"
             />
 
             <div className="flex justify-between items-center">
