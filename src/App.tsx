@@ -18,15 +18,16 @@ const ClaudeInterface = () => {
 
           <h2 className="text-3xl font-serif mb-6 text-gray-700">
             <span className="text-orange-400 mr-2">✺</span>
-            Good evening, Cheenar
+            Good evening, Random
           </h2>
 
           <div className="bg-white rounded-lg shadow-md w-full max-w-2xl p-4 mb-6">
             <input
               type="text"
               placeholder="How can Claude help you today?"
-              className="w-full p-2  text-gray-500 mb-4"
+              className="w-full p-2 text-gray-500 mb-4"
             />
+
             <div className="flex justify-between items-center">
               <div className="text-sm text-purple-600">Claude 3.5 Sonnet</div>
 
