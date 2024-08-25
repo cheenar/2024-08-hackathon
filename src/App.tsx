@@ -22,9 +22,14 @@ const ClaudeInterface = () => {
           </h2>
 
           <div className="bg-white rounded-lg shadow-md w-full max-w-2xl p-4 mb-6">
-            <p className="text-gray-500 mb-4">How can Claude help you today?</p>
+            <input
+              type="text"
+              placeholder="How can Claude help you today?"
+              className="w-full p-2  text-gray-500 mb-4"
+            />
             <div className="flex justify-between items-center">
               <div className="text-sm text-purple-600">Claude 3.5 Sonnet</div>
+
               <div className="flex items-center space-x-2">
                 <button className="flex items-center text-gray-600 text-sm">
                   <PlusCircle className="w-4 h-4 mr-1" /> Add content
