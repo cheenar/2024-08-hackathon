@@ -1,12 +1,12 @@
 import {
   ArrowLeft,
   ArrowRight,
-  RefreshCw,
-  MessageSquare,
-  PlusCircle,
   Camera,
   ChevronDown,
   ChevronRight,
+  MessageSquare,
+  PlusCircle,
+  RefreshCw,
 } from "lucide-react";
 
 const ClaudeInterface = () => {
