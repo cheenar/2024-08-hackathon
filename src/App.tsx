@@ -1,169 +1,112 @@
-import { Camera, PlusCircle } from "lucide-react";
+import { Camera, PlusCircle, Send } from "lucide-react";
 import ollama, { Message } from "ollama/browser";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ClaudeInterface = () => {
   const [message, setMessage] = useState("");
-  const [history, setHistory] = useState<Message[]>([]);
-  const [latestMessage, setLatestMessage] = useState<Message | undefined>(undefined);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(scrollToBottom, [messages]);
+
+  const handleSendMessage = async () => {
+    if (message.trim().length === 0) return;
+
+    const newMessage: Message = { role: "user", content: message };
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setMessage("");
+
+    setIsStreaming(true);
+    let streamedContent = "";
+
+    try {
+      const response = await ollama.chat({
+        model: "llama3.1",
+        messages: [...messages, newMessage],
+        stream: true,
+      });
+
+      for await (const chunk of response) {
+        streamedContent += chunk.message.content;
+      }
+      setMessages((prevMessages) => [
+        ...prevMessages.slice(0, -1),
+        newMessage,
+        { role: "assistant", content: streamedContent },
+      ]);
+    } catch (error) {
+      console.error("Error in chat stream:", error);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
-    <>
-      <div className="bg-[#efeee5] p-4 h-screen flex flex-col text-gray-600">
-        {/* <header className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-2">
-            <ArrowLeft className="text-gray-600" />
-            <ArrowRight className="text-gray-300" />
-            <RefreshCw className="text-gray-600" />
-          </div>
-        </header> */}
+    <div className="bg-[#efeee5] p-4 h-screen flex flex-col text-gray-600">
+      <main className="flex-grow flex flex-col items-center overflow-hidden">
+        <h1 className="text-2xl font-serif mb-2 text-gray-700">Clxxde</h1>
+        <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Frugal Plan</div>
 
-        <main className="flex-grow flex flex-col items-center">
-          <h1 className="text-2xl font-serif mb-2 text-gray-700">Clxxde</h1>
-          <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Frugal Plan</div>
+        <div className="w-full max-w-2xl flex-grow overflow-y-auto mb-4 px-4">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`p-3 rounded-lg flex items-center mb-2 ${
+                msg.role === "user" ? "bg-gray-300 text-purple-700" : "bg-purple-100 text-purple-700"
+              }`}
+            >
+              <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{msg.role}</span>
+              {msg.content}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
 
-          <h2 className="text-3xl font-serif mb-6 text-gray-700">
-            <span className="text-orange-400 mr-2">✺</span>
-            Good evening, Peter Griffin
-          </h2>
-
-          <div className="bg-white rounded-lg shadow-md w-full max-w-2xl p-4 mb-6">
+        <div className="bg-white rounded-lg shadow-md w-full max-w-2xl p-4">
+          <div className="flex items-center">
             <input
               type="text"
-              placeholder="How can Claude help you today?"
-              className="w-full p-2 text-gray-500 mb-4 focus:outline-none"
+              placeholder="How can Clxxde help you today?"
+              className="flex-grow p-2 text-gray-500 focus:outline-none"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (message.trim().length === 0) return;
-
-                  // update history
-                  setHistory((prev) => [
-                    ...prev,
-                    {
-                      content: message,
-                      role: "user",
-                      images: undefined,
-                      tool_calls: undefined,
-                    },
-                  ]);
-
-                  // clear message
-                  setMessage("");
-
-                  // update latest message
-                  ollama
-                    .chat({
-                      model: "llama3.1",
-                      messages: history,
-                      stream: true,
-                    })
-                    .then(async (response) => {
-                      setLatestMessage(undefined);
-                      for await (const part of response) {
-                        setLatestMessage((prev) => {
-                          if (prev) {
-                            return {
-                              content: prev.content + " " + part.message.content,
-                              role: "assistant",
-                              images: undefined,
-                              tool_calls: undefined,
-                            };
-                          } else {
-                            return {
-                              content: part.message.content,
-                              role: "assistant",
-                              images: undefined,
-                              tool_calls: undefined,
-                            };
-                          }
-                        });
-                      }
-                      setHistory((prev) => {
-                        return [...prev, latestMessage as Message];
-                      });
-                    });
-                }
-              }}
+              onKeyDown={handleKeyDown}
+              disabled={isStreaming}
             />
-
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-purple-600">Ollama 3.1 8B</div>
-
-              <div className="flex items-center space-x-2">
-                <button className="flex items-center text-gray-600 text-sm">
-                  <PlusCircle className="w-4 h-4 mr-1" /> Add content
-                </button>
-                <Camera className="text-gray-600 w-4 h-4" />
-              </div>
-            </div>
-          </div>
-
-          {[latestMessage].concat(history).map((message, index) => (
-            <>
-              {message?.role === "user" ? (
-                <div className="bg-gray-300 text-purple-700 p-3 rounded-lg flex items-center mb-6 w-full max-w-2xl">
-                  <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{message?.role}</span>
-                  {message?.content}
-                </div>
-              ) : (
-                <div className="bg-purple-100 text-purple-700 p-3 rounded-lg flex items-center mb-6 w-full max-w-2xl">
-                  <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{message?.role}</span>
-                  {message?.content}
-                </div>
-              )}
-            </>
-          ))}
-
-          {/* <div className="flex space-x-2 mb-6">
-            <button className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm">Generate excel formulas</button>
-            <button className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm">
-              Extract insights from report
-            </button>
-            <button className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm">
-              Provide stakeholder perspective
+            <button
+              onClick={handleSendMessage}
+              disabled={isStreaming || message.trim().length === 0}
+              className="ml-2 bg-purple-600 text-white p-2 rounded-full disabled:bg-gray-400"
+            >
+              <Send className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="bg-purple-100 text-purple-700 p-3 rounded-lg flex items-center mb-6 w-full max-w-2xl">
-            <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">NEW</span>
-            Introducing Projects
-            <span className="ml-auto text-sm">Try it out</span>
-          </div>
+          <div className="flex justify-between items-center mt-2">
+            <div className="text-sm text-purple-600">Ollama 3.1 8B</div>
 
-          <div className="w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold flex items-center">
-                Your recent chats <ChevronDown className="w-4 h-4 ml-1" />
-              </h3>
-              <button className="text-purple-600 text-sm flex items-center">
-                View all <ChevronRight className="w-4 h-4 ml-1" />
+            <div className="flex items-center space-x-2">
+              <button className="flex items-center text-gray-600 text-sm">
+                <PlusCircle className="w-4 h-4 mr-1" /> Add content
               </button>
+              <Camera className="text-gray-600 w-4 h-4" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                "Personalized Programming Project",
-                "Project Planning and Development",
-                "Fungible Reservation Selling System",
-                "Finding the Most Powerful Weapon",
-                "Pros and Cons of a Tokyo Selling Program",
-                "Limits on Messages to Claude",
-              ].map((title, index) => (
-                <div
-                  key={index}
-                  className="bg-white p-3 rounded-lg shadow-sm"
-                >
-                  <MessageSquare className="text-gray-400 w-5 h-5 mb-2" />
-                  <p className="text-sm font-medium">{title}</p>
-                  <p className="text-xs text-gray-500 mt-1">{index > 2 ? "2 months ago" : "1 month ago"}</p>
-                </div>
-              ))}
-            </div>
-          </div> */}
-        </main>
-      </div>
-    </>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 };
 
