@@ -6,6 +6,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Camera, Eraser, OctagonX, Pen, PenLine, PlusCircle, Send } from "lucide-react";
 import ollama, { Message } from "ollama/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -29,7 +30,7 @@ enum RegisteredModel {
 const REGISTERED_MODELS: Record<RegisteredModel, ModelCard> = {
   "llama3.1": {
     model_name: RegisteredModel.LLAMA_3_1_8B,
-    model_description: "Meta Llama 3: The most capable openly available LLM to date.",
+    model_description: "Meta Llama 3: The most capable openly available LLM to date. 8B parameters.",
     model_context_length: "128,000",
     short_name: "Meta",
   },
@@ -53,7 +54,7 @@ function computeUsedTokens(messageHistory: Message[]): number {
   return Math.ceil(messageHistory.reduce((acc, msg) => acc + msg.content.length, 0) / 4);
 }
 
-const ClaudeInterface = () => {
+export default function ClaudeInterface() {
   const [currentUserMessage, setCurrentUserMessage] = useState("");
   const [messageHistory, setMessageHistory] = useState<Message[]>([]);
   const [isStreamingResponse, setIsStreamingResponse] = useState(false);
@@ -61,6 +62,17 @@ const ClaudeInterface = () => {
 
   const [currentModelIndex, setCurrentModelIndex] = useState<RegisteredModel>(RegisteredModel.DEEPSEEKER_CODER_6_7B);
   const [currentModel, setCurrentModel] = useState<ModelCard>(REGISTERED_MODELS[RegisteredModel.DEEPSEEKER_CODER_6_7B]);
+
+  useEffect(() => {
+    (async () => {
+      const listModelsResponse = await ollama.list();
+      listModelsResponse.models.forEach(async (model) => {
+        const describe = await ollama.show({ model: model.name });
+        console.log(model);
+        console.log(describe);
+      });
+    })();
+  }, []);
 
   useEffect(() => {
     setCurrentModel(REGISTERED_MODELS[currentModelIndex]);
@@ -161,7 +173,7 @@ const ClaudeInterface = () => {
           <div className="flex items-center">
             <input
               type="text"
-              placeholder="How can Clxxde help you today?"
+              placeholder={`How can ${currentModel.short_name} help you today?`}
               className="flex-grow p-2 text-gray-500 focus:outline-none"
               value={currentUserMessage}
               onChange={(e) => setCurrentUserMessage(e.target.value)}
@@ -201,15 +213,25 @@ const ClaudeInterface = () => {
                 {Object.entries(REGISTERED_MODELS).map(([_, model]) => {
                   return (
                     <>
-                      <DropdownMenuItem
-                        key={model.model_name}
-                        onClick={() => {
-                          setMessageHistory([]);
-                          setCurrentModelIndex(model.model_name as RegisteredModel);
-                        }}
-                      >
-                        {model.model_name}
-                      </DropdownMenuItem>
+                      <HoverCard key={model.model_name + ":card"}>
+                        <HoverCardTrigger>
+                          <DropdownMenuItem
+                            key={model.model_name}
+                            onClick={() => {
+                              setMessageHistory([]);
+                              setCurrentModelIndex(model.model_name as RegisteredModel);
+                            }}
+                          >
+                            {model.model_name}
+                          </DropdownMenuItem>
+                          <HoverCardContent className="text-[10px] absolute left-[7rem] bottom-0">
+                            <div>{model.model_description}</div>
+                            <div className="mt-1">
+                              <span className="font-semibold">Context Length</span>: {model.model_context_length}
+                            </div>
+                          </HoverCardContent>
+                        </HoverCardTrigger>
+                      </HoverCard>
                     </>
                   );
                 })}
@@ -227,6 +249,4 @@ const ClaudeInterface = () => {
       </main>
     </div>
   );
-};
-
-export default ClaudeInterface;
+}
