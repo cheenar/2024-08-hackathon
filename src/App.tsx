@@ -50,8 +50,8 @@ const REGISTERED_MODELS: Record<RegisteredModel, ModelCard> = {
  * @param messageHistory Get the total number of tokens used in the message history
  * @returns
  */
-function computeUsedTokens(messageHistory: Message[]): number {
-  return Math.ceil(messageHistory.reduce((acc, msg) => acc + msg.content.length, 0) / 4);
+function computeUsedTokens(messageHistory: Message[]): string {
+  return Math.ceil(messageHistory.reduce((acc, msg) => acc + msg.content.length, 0) / 4).toLocaleString();
 }
 
 export default function ClaudeInterface() {
@@ -125,9 +125,9 @@ export default function ClaudeInterface() {
     <div className="bg-[#efeee5] p-4 h-screen flex flex-col text-gray-600">
       <main className="flex-grow flex flex-col items-center overflow-hidden">
         <h1 className="text-2xl font-serif mb-2 text-gray-700">Clxxde</h1>
-        <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Frugal Plan</div>
+        <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">"Free" Plan</div>
 
-        <div className="left-5 absolute bg-slate-100 p-4 rounded-lg">
+        <div className="right-5 absolute bg-slate-100 p-4 rounded-lg">
           <button
             className="flex items-center text-gray-600 text-sm"
             onClick={() => {
@@ -138,18 +138,6 @@ export default function ClaudeInterface() {
           >
             <Eraser className="w-4 h-4" />
           </button>
-        </div>
-
-        <div className="right-5 absolute bg-slate-100 p-4 rounded-lg">
-          <div className="flex space-x-2">
-            <span className="font-bold text-xs"> Context Length</span>
-          </div>
-          <div className="flex space-x-2">
-            {isStreamingResponse ? <PenLine className="w-3 h-3 mt-0.5" /> : <Pen className="w-3 h-3 mt-0.5" />}
-            <span className="text-xs">
-              {computeUsedTokens(messageHistory)}/{currentModel.model_context_length}
-            </span>
-          </div>
         </div>
 
         <div className="w-full max-w-2xl flex-grow overflow-y-auto mb-4 px-4 rounded-sm">
@@ -163,7 +151,7 @@ export default function ClaudeInterface() {
               <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">
                 {handleRole(msg.role, currentModel)}
               </span>
-              {msg.content}
+              <pre className="whitespace-pre-wrap">{msg.content}</pre>
             </div>
           ))}
           <div ref={messagesEndRef} />
@@ -171,7 +159,7 @@ export default function ClaudeInterface() {
 
         <div className="bg-white rounded-lg shadow-md w-full max-w-2xl p-4">
           <div className="flex items-center">
-            <input
+            <textarea
               type="text"
               placeholder={`How can ${currentModel.short_name} help you today?`}
               className="flex-grow p-2 text-gray-500 focus:outline-none"
@@ -202,41 +190,50 @@ export default function ClaudeInterface() {
           </div>
 
           <div className="flex justify-between items-center mt-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="text-xs text-purple-500">{currentModel.model_name}</DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuLabel>{currentModel.model_name}</DropdownMenuLabel>
-                <DropdownMenuLabel className="text-xs font-light w-[200px]">
-                  {currentModel.model_description}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {Object.entries(REGISTERED_MODELS).map(([_, model]) => {
-                  return (
-                    <>
-                      <HoverCard key={model.model_name + ":card"}>
-                        <HoverCardTrigger>
-                          <DropdownMenuItem
-                            key={model.model_name}
-                            onClick={() => {
-                              setMessageHistory([]);
-                              setCurrentModelIndex(model.model_name as RegisteredModel);
-                            }}
-                          >
-                            {model.model_name}
-                          </DropdownMenuItem>
-                          <HoverCardContent className="text-[10px] absolute left-[7rem] bottom-0">
-                            <div>{model.model_description}</div>
-                            <div className="mt-1">
-                              <span className="font-semibold">Context Length</span>: {model.model_context_length}
-                            </div>
-                          </HoverCardContent>
-                        </HoverCardTrigger>
-                      </HoverCard>
-                    </>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex space-x-6">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="text-xs text-purple-500">{currentModel.model_name}</DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>{currentModel.model_name}</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs font-light w-[200px]">
+                    {currentModel.model_description}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {Object.entries(REGISTERED_MODELS).map(([_, model]) => {
+                    return (
+                      <>
+                        <HoverCard key={model.model_name + ":card"}>
+                          <HoverCardTrigger>
+                            <DropdownMenuItem
+                              key={model.model_name}
+                              onClick={() => {
+                                setMessageHistory([]);
+                                setCurrentModelIndex(model.model_name as RegisteredModel);
+                              }}
+                            >
+                              {model.model_name}
+                            </DropdownMenuItem>
+                            <HoverCardContent className="text-[10px] absolute left-[7rem] bottom-0">
+                              <div>{model.model_description}</div>
+                              <div className="mt-1">
+                                <span className="font-semibold">Context Length</span>: {model.model_context_length}
+                              </div>
+                            </HoverCardContent>
+                          </HoverCardTrigger>
+                        </HoverCard>
+                      </>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div className="flex space-x-1">
+                {isStreamingResponse ? <PenLine className="w-3 h-3 mt-0.5" /> : <Pen className="w-3 h-3 mt-0.5" />}
+                <span className="text-xs font-extralight">
+                  {computeUsedTokens(messageHistory)} / {currentModel.model_context_length} Tokens
+                </span>
+              </div>
+            </div>
 
             <div className="flex items-center space-x-2">
               <button className="flex items-center text-gray-600 text-sm">
