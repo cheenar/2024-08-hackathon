@@ -1,50 +1,104 @@
-import { Camera, OctagonX, PlusCircle, Send } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Camera, Eraser, OctagonX, Pen, PenLine, PlusCircle, Send } from "lucide-react";
 import ollama, { Message } from "ollama/browser";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-function handleRole(role: string) {
-  return role === "user" ? "Peter" : "Clxxde";
+function handleRole(role: string, model: ModelCard): string {
+  return role === "user" ? "Peter" : model.short_name;
+}
+
+interface ModelCard {
+  model_name: string;
+  model_description: string;
+  model_context_length: string;
+  short_name: string;
+}
+
+enum RegisteredModel {
+  LLAMA_3_1_8B = "llama3.1",
+  DEEPSEEKER_CODER_6_7B = "deepseek-coder:6.7b",
+}
+
+const REGISTERED_MODELS: Record<RegisteredModel, ModelCard> = {
+  "llama3.1": {
+    model_name: RegisteredModel.LLAMA_3_1_8B,
+    model_description: "Meta Llama 3: The most capable openly available LLM to date.",
+    model_context_length: "128,000",
+    short_name: "Meta",
+  },
+  "deepseek-coder:6.7b": {
+    model_name: RegisteredModel.DEEPSEEKER_CODER_6_7B,
+    model_description:
+      "DeepSeek Coder is a capable coding model trained on two trillion code and natural language tokens.",
+    model_context_length: "16,384",
+    short_name: "DeepSeek",
+  },
+};
+
+/**
+ * Generates the used token length from the message history using the OpenAI estimate
+ * of 4 tokens per character.
+ *
+ * @param messageHistory Get the total number of tokens used in the message history
+ * @returns
+ */
+function computeUsedTokens(messageHistory: Message[]): number {
+  return Math.ceil(messageHistory.reduce((acc, msg) => acc + msg.content.length, 0) / 4);
 }
 
 const ClaudeInterface = () => {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [currentUserMessage, setCurrentUserMessage] = useState("");
+  const [messageHistory, setMessageHistory] = useState<Message[]>([]);
+  const [isStreamingResponse, setIsStreamingResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const [currentModelIndex, setCurrentModelIndex] = useState<RegisteredModel>(RegisteredModel.DEEPSEEKER_CODER_6_7B);
+  const [currentModel, setCurrentModel] = useState<ModelCard>(REGISTERED_MODELS[RegisteredModel.DEEPSEEKER_CODER_6_7B]);
 
-  useEffect(scrollToBottom, [messages]);
+  useEffect(() => {
+    setCurrentModel(REGISTERED_MODELS[currentModelIndex]);
+  }, [currentModelIndex]);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  useEffect(scrollToBottom, [messageHistory, scrollToBottom]);
 
   const handleSendMessage = async () => {
-    if (message.trim().length === 0) return;
+    if (currentUserMessage.trim().length === 0) return;
 
-    const newMessage: Message = { role: "user", content: message };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    setMessage("");
+    const newMessage: Message = { role: "user", content: currentUserMessage };
+    setMessageHistory((prevMessages) => [...prevMessages, newMessage]);
+    setCurrentUserMessage("");
 
-    setIsStreaming(true);
+    setIsStreamingResponse(true);
     let streamedContent = "";
 
     try {
       const response = await ollama.chat({
-        model: "llama3.1",
-        messages: [...messages, newMessage],
+        model: currentModel.model_name,
+        messages: [...messageHistory, newMessage],
         stream: true,
       });
 
-      const currentMessages = [...messages, newMessage];
+      const currentMessages = [...messageHistory, newMessage];
 
       for await (const chunk of response) {
         streamedContent += chunk.message.content;
-        setMessages([...currentMessages, { role: "assistant", content: streamedContent }]);
+        setMessageHistory([...currentMessages, { role: "assistant", content: streamedContent }]);
       }
     } catch (error) {
       console.error("Error in chat stream:", error);
     } finally {
-      setIsStreaming(false);
+      setIsStreamingResponse(false);
     }
   };
 
@@ -61,15 +115,42 @@ const ClaudeInterface = () => {
         <h1 className="text-2xl font-serif mb-2 text-gray-700">Clxxde</h1>
         <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Frugal Plan</div>
 
-        <div className="w-full max-w-2xl flex-grow overflow-y-auto mb-4 px-4">
-          {messages.map((msg, index) => (
+        <div className="left-5 absolute bg-slate-100 p-4 rounded-lg">
+          <button
+            className="flex items-center text-gray-600 text-sm"
+            onClick={() => {
+              ollama.abort();
+              setIsStreamingResponse(false);
+              setMessageHistory([]);
+            }}
+          >
+            <Eraser className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="right-5 absolute bg-slate-100 p-4 rounded-lg">
+          <div className="flex space-x-2">
+            <span className="font-bold text-xs"> Context Length</span>
+          </div>
+          <div className="flex space-x-2">
+            {isStreamingResponse ? <PenLine className="w-3 h-3 mt-0.5" /> : <Pen className="w-3 h-3 mt-0.5" />}
+            <span className="text-xs">
+              {computeUsedTokens(messageHistory)}/{currentModel.model_context_length}
+            </span>
+          </div>
+        </div>
+
+        <div className="w-full max-w-2xl flex-grow overflow-y-auto mb-4 px-4 rounded-sm">
+          {messageHistory.map((msg, index) => (
             <div
               key={index}
               className={`p-3 rounded-lg flex items-center mb-2 ${
                 msg.role === "user" ? "bg-gray-100 text-purple-700" : "bg-purple-100 text-purple-700"
               }`}
             >
-              <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{handleRole(msg.role)}</span>
+              <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">
+                {handleRole(msg.role, currentModel)}
+              </span>
               {msg.content}
             </div>
           ))}
@@ -82,34 +163,58 @@ const ClaudeInterface = () => {
               type="text"
               placeholder="How can Clxxde help you today?"
               className="flex-grow p-2 text-gray-500 focus:outline-none"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              value={currentUserMessage}
+              onChange={(e) => setCurrentUserMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isStreaming}
+              disabled={isStreamingResponse}
             />
             <button
               onClick={(e) => {
                 e.preventDefault();
-                if (isStreaming) {
+                if (isStreamingResponse) {
                   ollama.abort();
-                  setIsStreaming(false);
+                  setIsStreamingResponse(false);
                 } else {
                   handleSendMessage();
                 }
               }}
               // disabled={isStreaming || message.trim().length === 0}
               className={
-                isStreaming
+                isStreamingResponse
                   ? "ml-2 bg-red-600 text-white p-2 rounded-full"
                   : "ml-2 bg-purple-600 text-white p-2 rounded-full"
               }
             >
-              {isStreaming ? <OctagonX className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+              {isStreamingResponse ? <OctagonX className="w-4 h-4" /> : <Send className="w-4 h-4" />}
             </button>
           </div>
 
           <div className="flex justify-between items-center mt-2">
-            <div className="text-sm text-purple-600">Ollama 3.1 8B</div>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="text-xs text-purple-500">{currentModel.model_name}</DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>{currentModel.model_name}</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs font-light w-[200px]">
+                  {currentModel.model_description}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Object.entries(REGISTERED_MODELS).map(([_, model]) => {
+                  return (
+                    <>
+                      <DropdownMenuItem
+                        key={model.model_name}
+                        onClick={() => {
+                          setMessageHistory([]);
+                          setCurrentModelIndex(model.model_name as RegisteredModel);
+                        }}
+                      >
+                        {model.model_name}
+                      </DropdownMenuItem>
+                    </>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <div className="flex items-center space-x-2">
               <button className="flex items-center text-gray-600 text-sm">
