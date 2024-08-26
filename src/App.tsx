@@ -1,4 +1,4 @@
-import { Camera, PlusCircle, Send } from "lucide-react";
+import { Camera, OctagonX, PlusCircle, Send } from "lucide-react";
 import ollama, { Message } from "ollama/browser";
 import { useEffect, useRef, useState } from "react";
 
@@ -88,11 +88,23 @@ const ClaudeInterface = () => {
               disabled={isStreaming}
             />
             <button
-              onClick={handleSendMessage}
-              disabled={isStreaming || message.trim().length === 0}
-              className="ml-2 bg-purple-600 text-white p-2 rounded-full disabled:bg-gray-400"
+              onClick={(e) => {
+                e.preventDefault();
+                if (isStreaming) {
+                  ollama.abort();
+                  setIsStreaming(false);
+                } else {
+                  handleSendMessage();
+                }
+              }}
+              // disabled={isStreaming || message.trim().length === 0}
+              className={
+                isStreaming
+                  ? "ml-2 bg-red-600 text-white p-2 rounded-full"
+                  : "ml-2 bg-purple-600 text-white p-2 rounded-full"
+              }
             >
-              <Send className="w-5 h-5" />
+              {isStreaming ? <OctagonX className="w-4 h-4" /> : <Send className="w-4 h-4" />}
             </button>
           </div>
 
