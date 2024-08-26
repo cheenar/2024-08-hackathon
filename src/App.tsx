@@ -1,6 +1,12 @@
-import { Camera, ChevronDown, ChevronRight, MessageSquare, PlusCircle } from "lucide-react";
+import { Camera, PlusCircle } from "lucide-react";
+import ollama, { Message } from "ollama/browser";
+import { useState } from "react";
 
 const ClaudeInterface = () => {
+  const [message, setMessage] = useState("");
+  const [history, setHistory] = useState<Message[]>([]);
+  const [latestMessage, setLatestMessage] = useState<Message | undefined>(undefined);
+
   return (
     <>
       <div className="bg-[#efeee5] p-4 h-screen flex flex-col text-gray-600">
@@ -14,11 +20,11 @@ const ClaudeInterface = () => {
 
         <main className="flex-grow flex flex-col items-center">
           <h1 className="text-2xl font-serif mb-2 text-gray-700">Clxxde</h1>
-          <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Stolen Plan</div>
+          <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm mb-4">Frugal Plan</div>
 
           <h2 className="text-3xl font-serif mb-6 text-gray-700">
             <span className="text-orange-400 mr-2">✺</span>
-            Good evening, Random
+            Good evening, Peter Griffin
           </h2>
 
           <div className="bg-white rounded-lg shadow-md w-full max-w-2xl p-4 mb-6">
@@ -26,10 +32,64 @@ const ClaudeInterface = () => {
               type="text"
               placeholder="How can Claude help you today?"
               className="w-full p-2 text-gray-500 mb-4 focus:outline-none"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (message.trim().length === 0) return;
+
+                  // update history
+                  setHistory((prev) => [
+                    ...prev,
+                    {
+                      content: message,
+                      role: "user",
+                      images: undefined,
+                      tool_calls: undefined,
+                    },
+                  ]);
+
+                  // clear message
+                  setMessage("");
+
+                  // update latest message
+                  ollama
+                    .chat({
+                      model: "llama3.1",
+                      messages: history,
+                      stream: true,
+                    })
+                    .then(async (response) => {
+                      setLatestMessage(undefined);
+                      for await (const part of response) {
+                        setLatestMessage((prev) => {
+                          if (prev) {
+                            return {
+                              content: prev.content + " " + part.message.content,
+                              role: "assistant",
+                              images: undefined,
+                              tool_calls: undefined,
+                            };
+                          } else {
+                            return {
+                              content: part.message.content,
+                              role: "assistant",
+                              images: undefined,
+                              tool_calls: undefined,
+                            };
+                          }
+                        });
+                      }
+                      setHistory((prev) => {
+                        return [...prev, latestMessage as Message];
+                      });
+                    });
+                }
+              }}
             />
 
             <div className="flex justify-between items-center">
-              <div className="text-sm text-purple-600">Claude 3.5 Sonnet</div>
+              <div className="text-sm text-purple-600">Ollama 3.1 8B</div>
 
               <div className="flex items-center space-x-2">
                 <button className="flex items-center text-gray-600 text-sm">
@@ -40,7 +100,23 @@ const ClaudeInterface = () => {
             </div>
           </div>
 
-          <div className="flex space-x-2 mb-6">
+          {[latestMessage].concat(history).map((message, index) => (
+            <>
+              {message?.role === "user" ? (
+                <div className="bg-gray-300 text-purple-700 p-3 rounded-lg flex items-center mb-6 w-full max-w-2xl">
+                  <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{message?.role}</span>
+                  {message?.content}
+                </div>
+              ) : (
+                <div className="bg-purple-100 text-purple-700 p-3 rounded-lg flex items-center mb-6 w-full max-w-2xl">
+                  <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{message?.role}</span>
+                  {message?.content}
+                </div>
+              )}
+            </>
+          ))}
+
+          {/* <div className="flex space-x-2 mb-6">
             <button className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm">Generate excel formulas</button>
             <button className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm">
               Extract insights from report
@@ -84,7 +160,7 @@ const ClaudeInterface = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
         </main>
       </div>
     </>
