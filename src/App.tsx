@@ -114,7 +114,7 @@ export default function ClaudeInterface() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -160,7 +160,6 @@ export default function ClaudeInterface() {
         <div className="bg-white rounded-lg shadow-md w-full max-w-2xl p-4">
           <div className="flex items-center">
             <textarea
-              type="text"
               placeholder={`How can ${currentModel.short_name} help you today?`}
               className="flex-grow p-2 text-gray-500 focus:outline-none"
               value={currentUserMessage}
