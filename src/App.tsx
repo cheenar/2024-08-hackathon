@@ -2,6 +2,10 @@ import { Camera, PlusCircle, Send } from "lucide-react";
 import ollama, { Message } from "ollama/browser";
 import { useEffect, useRef, useState } from "react";
 
+function handleRole(role: string) {
+  return role === "user" ? "Peter" : "Clxxde";
+}
+
 const ClaudeInterface = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -31,14 +35,12 @@ const ClaudeInterface = () => {
         stream: true,
       });
 
+      const currentMessages = [...messages, newMessage];
+
       for await (const chunk of response) {
         streamedContent += chunk.message.content;
+        setMessages([...currentMessages, { role: "assistant", content: streamedContent }]);
       }
-      setMessages((prevMessages) => [
-        ...prevMessages.slice(0, -1),
-        newMessage,
-        { role: "assistant", content: streamedContent },
-      ]);
     } catch (error) {
       console.error("Error in chat stream:", error);
     } finally {
@@ -64,10 +66,10 @@ const ClaudeInterface = () => {
             <div
               key={index}
               className={`p-3 rounded-lg flex items-center mb-2 ${
-                msg.role === "user" ? "bg-gray-300 text-purple-700" : "bg-purple-100 text-purple-700"
+                msg.role === "user" ? "bg-gray-100 text-purple-700" : "bg-purple-100 text-purple-700"
               }`}
             >
-              <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{msg.role}</span>
+              <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">{handleRole(msg.role)}</span>
               {msg.content}
             </div>
           ))}
