@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Camera, Eraser, OctagonX, Pen, PenLine, PlusCircle, Send } from "lucide-react";
+import Markdown from "markdown-to-jsx";
 import ollama, { Message } from "ollama/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -62,17 +63,6 @@ export default function ClaudeInterface() {
 
   const [currentModelIndex, setCurrentModelIndex] = useState<RegisteredModel>(RegisteredModel.DEEPSEEKER_CODER_6_7B);
   const [currentModel, setCurrentModel] = useState<ModelCard>(REGISTERED_MODELS[RegisteredModel.DEEPSEEKER_CODER_6_7B]);
-
-  useEffect(() => {
-    (async () => {
-      const listModelsResponse = await ollama.list();
-      listModelsResponse.models.forEach(async (model) => {
-        const describe = await ollama.show({ model: model.name });
-        console.log(model);
-        console.log(describe);
-      });
-    })();
-  }, []);
 
   useEffect(() => {
     setCurrentModel(REGISTERED_MODELS[currentModelIndex]);
@@ -151,7 +141,13 @@ export default function ClaudeInterface() {
               <span className="bg-purple-700 text-white text-xs px-1 rounded mr-2">
                 {handleRole(msg.role, currentModel)}
               </span>
-              <pre className="whitespace-pre-wrap">{msg.content}</pre>
+              <Markdown
+                options={{
+                  forceWrapper: true,
+                }}
+              >
+                {msg.content}
+              </Markdown>
             </div>
           ))}
           <div ref={messagesEndRef} />
